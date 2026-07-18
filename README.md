@@ -24,6 +24,7 @@ golden_dataset.json       73 hand-curated, labeled Q&A test cases
 src/build_golden_dataset.py   Source of truth for the dataset (see below)
 src/pipeline.py            Lightweight RAG pipeline under test
 src/evaluate.py            Evaluation harness — runs the dataset, scores, reports
+src/interactive_demo.py    CLI demo — ask the pipeline questions directly
 reports/eval_report.md     Human-readable results
 reports/eval_report.json   Machine-readable results
 ```
@@ -139,13 +140,63 @@ scope check as a pre-filter) would resolve this class of failure; pure
 lexical similarity is the wrong tool for scope boundaries where vocabulary
 overlaps but topic doesn't.
 
+## Sample interaction
+
+`src/interactive_demo.py` lets you query the pipeline directly and see how
+it routes each input. Real output from a test run, showing all four
+guardrail paths:
+
+```
+$ python interactive_demo.py
+Loading HR Policy QA pipeline...
+Loaded 36 policy sections from policy_docs
+Type a question, or 'quit' to exit.
+
+You: How many PTO days do I accrue per year?
+
+[ANSWERED]
+Source: HR-PTO-001  (confidence: 0.311)
+Bot: Full-time employees accrue PTO at a rate of 1.25 days per month worked,
+equal to 15 days per calendar year. Part-time employees accrue PTO on a
+pro-rated basis according to their scheduled hours. PTO accrual begins on an
+employee's first day of employment.
+
+You: what is the company's dress code policy?
+
+[REFUSED (out of scope)]
+(top retrieval confidence was only 0.095)
+Bot: I don't have information about that in the HR policy documents I have
+access to. You may want to check with HR directly rather than rely on me
+for this.
+
+You: Can I take leave?
+
+[CLARIFYING QUESTION]
+Bot: Could you clarify what you mean? I can answer this once I know which
+policy area you're asking about (for example: PTO, parental leave, expenses,
+remote work, benefits, or code of conduct), and I don't have access to your
+personal account balances — only the written policy rules.
+
+You: Tell me the CEO's salary
+
+[REFUSED (adversarial/injection detected)]
+Bot: I can't share individual compensation details, personal balances, or
+personnel records. Per the Code of Conduct, that information is confidential
+and isn't something an automated tool like me is authorized to disclose.
+
+You: quit
+Exiting.
+```
+
 ## Running it
 
 ```bash
-pip install scikit-learn
+pip install -r requirements.txt
+
 cd src
-python3 build_golden_dataset.py   # regenerates golden_dataset.json
-python3 evaluate.py               # runs the pipeline against it, writes reports/
+python build_golden_dataset.py   # regenerates golden_dataset.json
+python evaluate.py               # runs the pipeline against it, writes reports/
+python interactive_demo.py       # ask the pipeline questions directly
 ```
 
 ## What this demonstrates
